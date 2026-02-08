@@ -309,11 +309,11 @@ function analyzeWav(blob){
     const lastRms=Math.sqrt(lastSumSq/lastSecSamples);
     // 판정
     const flags=[];
-    if(rms<0.01)flags.push('⚠️ 전체 음량 매우 낮음');
-    if(silentRatio>0.5)flags.push('⚠️ 무음 구간 50%+ 초과');
-    if(peak>0.99)flags.push('⚠️ 클리핑 감지');
-    if(lastRms<rms*0.3&&duration>3)flags.push('⚠️ 끝부분 급격히 조용해짐');
-    if(lastRms>rms*2.5&&duration>3)flags.push('⚠️ 끝부분 급격히 커짐');
+    if(rms<0.005)flags.push('⚠️ 전체 음량 매우 낮음 (무음?)');
+    if(silentRatio>0.7)flags.push('⚠️ 무음 구간 70%+ 초과');
+    if(duration<1&&text_len>50)flags.push('⚠️ 비정상적으로 짧은 오디오');
+    if(lastRms<rms*0.15&&duration>5)flags.push('⚠️ 끝부분 급격히 조용해짐');
+    if(lastRms>rms*3.5&&duration>5)flags.push('⚠️ 끝부분 급격히 커짐');
     // 속도 추정 (한글 약 4자/초 기준, 큰 편차 감지)
     res({ok:flags.length===0,flags,duration:duration.toFixed(1),rms:rms.toFixed(4),silentRatio:(silentRatio*100).toFixed(1)});
   });
