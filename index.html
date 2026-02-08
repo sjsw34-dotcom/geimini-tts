@@ -321,18 +321,21 @@ function analyzeWav(blob){
 
 // ===== API 호출 =====
 async function callTTS(bible,scriptText,voiceName){
-  // 바이블은 systemInstruction에, 대본은 contents에 분리
-  const body={
-    generationConfig:{
-      responseModalities:["AUDIO"],
-      speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}}
-    },
-    contents:[{parts:[{text:scriptText}]}]
+  const genConfig={
+    responseModalities:["AUDIO"],
+    speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}}
   };
-  // 바이블이 있으면 systemInstruction으로 분리 (대본에 절대 섞이지 않음)
+
+  // 바이블은 대본에 직접 포함하되, 절대 읽지 않도록 명시적 구분
+  let finalText=scriptText;
   if(bible){
-    body.systemInstruction={parts:[{text:bible}]};
+    finalText=`아래 [시스템 지시]는 절대 소리내어 읽지 마세요. 음성의 스타일과 톤을 정하는 참고 사항일 뿐입니다. 소리내어 읽어야 할 부분은 [대본 시작] 이후의 텍스트만입니다.\n\n[시스템 지시]\n${bible}\n[시스템 지시 끝]\n\n[대본 시작]\n${scriptText}\n[대본 끝]`;
   }
+
+  const body={
+    generationConfig:genConfig,
+    contents:[{parts:[{text:finalText}]}]
+  };
 
   if(ST.apiMode==='supa'){
     const url=`${$('supaUrl').value.trim()}/functions/v1/${$('supaFn').value.trim()}`;
