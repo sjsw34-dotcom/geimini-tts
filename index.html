@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini TTS Studio v3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f1a;--card:#1a1a2e;--border:#2a2a4a;--pri:#6c5ce7;--pri2:#a29bfe;--acc:#00cec9;--tx:#e0e0e0;--txd:#888;--err:#ff6b6b;--ok:#00b894;--warn:#fdcb6e}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:16px}
+.wrap{max-width:1060px;margin:0 auto}
+h1{text-align:center;font-size:1.6em;margin-bottom:4px;background:linear-gradient(135deg,var(--pri2),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:var(--txd);font-size:.82em;margin-bottom:20px}
+.c{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.ct{font-size:1em;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.col{flex:1;min-width:180px}
+label{display:block;font-size:.78em;color:var(--txd);margin-bottom:3px}
+input,select,textarea{width:100%;padding:9px 11px;background:#12122a;border:1px solid var(--border);border-radius:7px;color:var(--tx);font-size:.88em;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--pri)}
+textarea{resize:vertical;font-family:inherit;line-height:1.6}
+.btn{padding:9px 18px;border:none;border-radius:7px;font-size:.88em;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .2s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.bp{background:var(--pri);color:#fff}.bp:hover:not(:disabled){background:var(--pri2)}
+.ba{background:var(--acc);color:#000}.ba:hover:not(:disabled){filter:brightness(1.15)}
+.bd{background:var(--err);color:#fff}.bd:hover:not(:disabled){filter:brightness(1.1)}
+.bw{background:var(--warn);color:#000}
+.bs{padding:5px 12px;font-size:.78em}
+.bg{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.rr{display:flex;align-items:center;gap:8px}
+.rr input[type=range]{flex:1;accent-color:var(--pri)}
+.rv{font-size:.82em;color:var(--acc);min-width:36px;text-align:right}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}
+.st{background:#12122a;padding:6px 12px;border-radius:7px;font-size:.78em}
+.st b{color:var(--acc)}
+.sl{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.sg{background:#12122a;border:1px solid var(--border);border-radius:7px;padding:10px}
+.sg.gn{border-color:var(--warn);animation:pu 1.5s infinite}
+.sg.dn{border-color:var(--ok)}
+.sg.er{border-color:var(--err)}
+.sg.flagged{border-color:var(--warn);border-width:2px}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.7}}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sn{font-weight:600;color:var(--pri2);font-size:.85em}
+.ss{font-size:.72em;padding:2px 7px;border-radius:4px}
+.ss.p{background:#333;color:#999}
+.ss.g{background:rgba(253,203,110,.2);color:var(--warn)}
+.ss.o{background:rgba(0,184,148,.2);color:var(--ok)}
+.ss.e{background:rgba(255,107,107,.2);color:var(--err)}
+.ss.f{background:rgba(253,203,110,.3);color:var(--warn)}
+.stx{font-size:.78em;color:var(--txd);max-height:50px;overflow:hidden;line-height:1.4}
+.sa{margin-top:6px}
+.sa audio{width:100%;height:34px}
+.sa-info{font-size:.7em;color:var(--txd);margin-top:3px;display:flex;gap:12px}
+.sa-info .flag{color:var(--warn);font-weight:600}
+.pb{width:100%;height:5px;background:#12122a;border-radius:3px;margin:10px 0;overflow:hidden}
+.pf{height:100%;background:linear-gradient(90deg,var(--pri),var(--acc));border-radius:3px;transition:width .3s}
+.log{background:#0a0a18;border:1px solid var(--border);border-radius:7px;padding:10px;max-height:200px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.72em;line-height:1.5;margin-top:8px}
+.log .i{color:var(--acc)}.log .w{color:var(--warn)}.log .e{color:var(--err)}.log .k{color:var(--ok)}
+.fa{margin-top:8px;padding:12px;background:#12122a;border-radius:7px}
+.fa audio{width:100%;margin:6px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.g2,.row{grid-template-columns:1fr;flex-direction:column}}
+.hd{display:none}
+.mo{display:flex;gap:7px;margin-bottom:8px}
+.mi{flex:1;padding:10px;background:#12122a;border:2px solid var(--border);border-radius:7px;cursor:pointer;text-align:center;transition:all .2s}
+.mi:hover{border-color:var(--pri)}
+.mi.sel{border-color:var(--acc);background:rgba(0,206,201,.08)}
+.mi .mn{font-weight:600;font-size:.9em;margin-bottom:1px}
+.mi .md{font-size:.7em;color:var(--txd)}
+.tip{background:rgba(108,92,231,.1);border-left:3px solid var(--pri);padding:8px 12px;border-radius:0 7px 7px 0;font-size:.78em;color:var(--txd);margin:7px 0;line-height:1.5}
+.tip b{color:var(--acc)}
+.bible-box{background:rgba(0,206,201,.04);border:1px solid rgba(0,206,201,.15);border-radius:7px;padding:14px;margin-top:8px}
+.bible-box textarea{background:#0a0a18}
+.sep-tag{display:inline-block;background:var(--pri);color:#fff;padding:1px 8px;border-radius:4px;font-size:.72em;font-family:monospace}
+.toggle{display:flex;align-items:center;gap:8px;margin:6px 0}
+.toggle input[type=checkbox]{width:16px;height:16px;accent-color:var(--acc)}
+.toggle label{margin:0;font-size:.82em;color:var(--tx);cursor:pointer}
+.tab-row{display:flex;gap:2px;margin-bottom:10px}
+.tab-btn{padding:7px 14px;background:#12122a;border:1px solid var(--border);border-bottom:none;border-radius:7px 7px 0 0;cursor:pointer;font-size:.8em;color:var(--txd)}
+.tab-btn.act{background:var(--card);color:var(--tx);font-weight:600;border-color:var(--acc)}
+.tab-pan{display:none}.tab-pan.act{display:block}
+.regen-btn{padding:3px 10px;font-size:.7em;background:var(--warn);color:#000;border:none;border-radius:4px;cursor:pointer;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🎙️ Gemini TTS Studio v3</h1>
+<p class="sub">보이스 바이블 + 컨텍스트 연결 + 품질 검수로 롱폼 일관성 극대화</p>
+
+<!-- API 설정 -->
+<div class="c">
+<div class="ct">🔑 API 설정</div>
+<div class="tab-row">
+<div class="tab-btn act" onclick="apiTab('direct')">Direct API</div>
+<div class="tab-btn" onclick="apiTab('supa')">Supabase 프록시</div>
+</div>
+<div class="tab-pan act" id="tp-direct">
+<div class="row">
+<div class="col" style="flex:2"><label>Google AI Studio API Key</label><input type="password" id="apiKey" placeholder="AIza..."></div>
+<div class="col"><label>&nbsp;</label><button class="btn bs bp" onclick="testApi()">테스트</button><span id="apiSt" style="font-size:.78em;margin-left:6px"></span></div>
+</div>
+</div>
+<div class="tab-pan" id="tp-supa">
+<div class="row">
+<div class="col"><label>Supabase URL</label><input id="supaUrl" placeholder="https://xxx.supabase.co"></div>
+<div class="col"><label>Supabase Anon Key</label><input type="password" id="supaKey" placeholder="eyJ..."></div>
+</div>
+<div style="margin-top:6px"><label>Edge Function 이름</label><input id="supaFn" value="tts-proxy" placeholder="tts-proxy"></div>
+<div class="tip">💡 Supabase Edge Function이 Gemini API를 대신 호출합니다. API 키가 서버에만 저장되어 안전합니다.</div>
+</div>
+</div>
+
+<!-- 모델 -->
+<div class="c">
+<div class="ct">🤖 모델 & 음성 (고정 필수)</div>
+<div class="g2">
+<div><label>TTS 모델</label><select id="mdl">
+<option value="gemini-2.5-flash-preview-tts">Flash TTS (빠름)</option>
+<option value="gemini-2.5-pro-preview-tts">Pro TTS (고품질)</option>
+</select></div>
+<div><label>음성 (전 청크 고정)</label><select id="vn">
+<option value="Zephyr">Zephyr (밝고 활기찬)</option><option value="Puck">Puck (활발한 남성)</option>
+<option value="Charon">Charon (차분한 남성)</option><option value="Kore">Kore (부드러운 여성)</option>
+<option value="Fenrir">Fenrir (깊은 남성)</option><option value="Leda">Leda (따뜻한 여성)</option>
+<option value="Orus">Orus (중후한 남성)</option><option value="Aoede">Aoede (편안한 여성)</option>
+</select></div>
+</div>
+<div style="margin-top:8px"><label>청크 간 대기 (ms)</label>
+<div class="rr"><input type="range" id="sd" min="300" max="3000" value="500" step="100" oninput="$('dv').textContent=this.value"><span class="rv" id="dv">500</span></div>
+</div>
+</div>
+
+<!-- 보이스 바이블 -->
+<div class="c">
+<div class="ct">📖 보이스 바이블 (일관성 핵심)</div>
+<div class="tip" style="margin-bottom:10px">⚠️ 이 바이블이 <b>모든 청크에 100% 동일하게</b> 적용됩니다. 단어 하나라도 바뀌면 결과가 흔들립니다.</div>
+<div class="bible-box">
+<label>화자 캐릭터 & 톤 설정</label>
+<textarea id="bibleChar" rows="3" placeholder="나이대, 말투, 감정선, 에너지 레벨">40대 중반 남성. 반말 톤. 감정은 차분하되 핵심 포인트에서만 약간 힘을 실어 강조한다. 에너지 레벨 4/10. 경제/재테크 유튜브 채널의 신뢰감 있는 진행자.</textarea>
+
+<label style="margin-top:10px">속도 & 호흡 규칙</label>
+<textarea id="bibleSpeed" rows="3" placeholder="읽기 속도, 쉼 규칙">말하는 속도는 보통보다 약간 느리게. 문장 끝마다 0.2초 쉬고, 새로운 주제 시작 전에는 0.4초 쉰다. 숫자나 퍼센트를 말할 때는 또박또박 천천히. 절대 급가속하지 않는다. 마지막 문장도 처음과 같은 속도로 끝낸다.</textarea>
+
+<label style="margin-top:10px">발음 사전 (고유명사/숫자/약어)</label>
+<textarea id="bibleDict" rows="3" placeholder="특수 읽기 규칙">CPI는 "씨피아이"로, ETF는 "이티에프"로, GDP는 "지디피"로, BIS는 "비아이에스"로 읽는다. 퍼센트는 "프로"가 아니라 "퍼센트"로. 1,500원은 "천오백원"으로. 달러는 "달러"로.</textarea>
+
+<label style="margin-top:10px">금지 규칙</label>
+<textarea id="bibleBan" rows="2" placeholder="하지 말아야 할 것들">과장된 감탄이나 "와~" 같은 추임새 금지. 웃음소리 금지. 끝 음이 처지거나 올라가지 않게 일정하게 유지. 마지막 문장에서 급하게 마무리하지 않는다. 대괄호 [] 안의 텍스트는 절대 소리내어 읽지 말고 톤/감정 참고만 한다.</textarea>
+</div>
+</div>
+
+<!-- 텍스트 입력 -->
+<div class="c">
+<div class="ct">📝 대본 입력</div>
+<div class="tip" style="margin-bottom:8px">✍️ 세그먼트를 나눌 곳에 <span class="sep-tag">===</span> 를 한 줄에 넣으세요. 각 청크 앞에 <b>[컨텍스트]</b>를 넣으면 읽지 않고 톤 참고만 합니다.</div>
+<textarea id="tx" rows="14" placeholder="[이전: 인트로. 차분한 인사. 속도 보통]
+[이번: 본론 진입. 차분 유지. 핵심 데이터 또박또박]
+올해 환율 전망을 본격적으로 살펴보겠습니다.
+먼저 달러 인덱스부터 보면...
+===
+[이전: 환율 전망 데이터 설명. 차분한 톤]
+[이번: 투자 전략으로 전환. 약간 힘 실어 강조]
+그렇다면 우리는 어떻게 대응해야 할까요?
+첫 번째 전략은..." oninput="uSt()"></textarea>
+<div style="margin-top:6px"><input type="file" accept=".txt,.md" onchange="lf(event)" style="font-size:.8em"></div>
+<div class="stats">
+<div class="st">글자: <b id="s1">0</b></div>
+<div class="st">청크: <b id="s2">0</b></div>
+</div>
+<div class="bg">
+<button class="btn bp" onclick="pvSp()">🔍 분할 미리보기</button>
+<button class="btn ba" onclick="go()" id="btnGo">🚀 TTS 생성</button>
+<button class="btn bd bs hd" onclick="doStop()" id="btnSt">⏹ 중지</button>
+</div>
+</div>
+
+<!-- 세그먼트 -->
+<div class="c hd" id="segC">
+<div class="ct">📊 청크 현황</div>
+<div class="pb"><div class="pf" id="pf" style="width:0%"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:.78em;color:var(--txd)"><span id="pt">대기</span><span id="pp">0%</span></div>
+<div class="sl" id="sL"></div>
+</div>
+
+<!-- 결과 -->
+<div class="c hd" id="resC">
+<div class="ct">🎵 결과</div>
+<div id="fS"></div>
+<div class="bg" style="justify-content:center;margin-top:10px">
+<button class="btn ba" onclick="dlAll()">📥 개별 다운로드</button>
+<button class="btn bp" onclick="merge()">🔗 병합 다운로드 (크로스페이드+정규화)</button>
+</div>
+</div>
+
+<!-- 로그 -->
+<div class="c"><div class="ct">📋 로그</div><div class="log" id="lg"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const lg=(m,c='i')=>{const d=$('lg');d.innerHTML+=`<div class="${c}">[${new Date().toLocaleTimeString('ko-KR')}] ${m}</div>`;d.scrollTop=d.scrollHeight};
+
+let ST={segs:[],auds:[],running:false,stop:false,apiMode:'direct'};
+
+function apiTab(m){
+  ST.apiMode=m;
+  document.querySelectorAll('.tab-btn').forEach((e,i)=>{e.classList.toggle('act',i===(m==='direct'?0:1))});
+  $('tp-direct').classList.toggle('act',m==='direct');
+  $('tp-supa').classList.toggle('act',m==='supa');
+}
+
+function uSt(){
+  const t=$('tx').value,segs=splitManual(t);
+  $('s1').textContent=t.length.toLocaleString();
+  $('s2').textContent=segs.length;
+}
+function lf(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=v=>{$('tx').value=v.target.result;uSt();lg('파일: '+f.name,'k')};r.readAsText(f)}
+
+async function testApi(){
+  const k=$('apiKey').value.trim();if(!k){$('apiSt').textContent='❌';return}
+  try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${k}`);
+    $('apiSt').innerHTML=r.ok?'<span style="color:var(--ok)">✅</span>':'<span style="color:var(--err)">❌</span>';
+    lg(r.ok?'API OK':'API 실패',r.ok?'k':'e');
+  }catch(e){$('apiSt').innerHTML='❌';lg(e.message,'e')}
+}
+
+// ===== 보이스 바이블 조합 =====
+function buildBible(){
+  const parts=[];
+  const ch=$('bibleChar').value.trim();if(ch)parts.push(`[화자 캐릭터]\n${ch}`);
+  const sp=$('bibleSpeed').value.trim();if(sp)parts.push(`[속도/호흡 규칙]\n${sp}`);
+  const di=$('bibleDict').value.trim();if(di)parts.push(`[발음 사전]\n${di}`);
+  const bn=$('bibleBan').value.trim();if(bn)parts.push(`[금지 규칙]\n${bn}`);
+  return parts.join('\n\n');
+}
+
+// ===== 분할 =====
+function splitManual(text){
+  return text.trim().split(/\n\s*===\s*\n/).map(s=>s.trim()).filter(s=>s.length>0);
+}
+
+function pvSp(){
+  const t=$('tx').value.trim();if(!t){alert('텍스트를 입력하세요');return}
+  ST.segs=splitManual(t);if(!ST.segs.length){alert('세그먼트 없음');return}
+  rnSg();$('segC').classList.remove('hd');
+  lg(`분할: ${ST.segs.length}개 청크`,'k');
+  ST.segs.forEach((s,i)=>lg(`  #${i+1}: ${s.length}자`));
+}
+
+function rnSg(){
+  const l=$('sL');l.innerHTML='';
+  ST.segs.forEach((s,i)=>{
+    const preview=s.replace(/\[.*?\]/g,'').trim().substring(0,120);
+    const d=document.createElement('div');d.className='sg';d.id='sg'+i;
+    d.innerHTML=`<div class="sh"><span class="sn">청크 ${i+1}/${ST.segs.length}</span><span class="ss p" id="ss${i}">대기</span></div><div class="stx">${preview}${preview.length>=120?'...':''} <span style="color:var(--acc)">(${s.length}자)</span></div><div class="sa" id="sa${i}"></div>`;
+    l.appendChild(d);
+  });
+}
+
+// ===== PCM → WAV =====
+function pcmToWav(pcm,sr,ch,bps){
+  const br=sr*ch*(bps/8),ba=ch*(bps/8),ds=pcm.byteLength;
+  const buf=new ArrayBuffer(44+ds),v=new DataView(buf);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+ds,true);w(8,'WAVE');w(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,sr,true);v.setUint32(28,br,true);v.setUint16(32,ba,true);
+  v.setUint16(34,bps,true);w(36,'data');v.setUint32(40,ds,true);
+  new Uint8Array(buf,44).set(new Uint8Array(pcm));
+  return buf;
+}
+
+function b64ToWavBlob(b64){
+  const raw=atob(b64),bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  if(bytes.length>4&&bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46){
+    return new Blob([bytes],{type:'audio/wav'});
+  }
+  return new Blob([pcmToWav(bytes.buffer,24000,1,16)],{type:'audio/wav'});
+}
+
+// ===== 품질 검수 =====
+function analyzeWav(blob){
+  return new Promise(async(res)=>{
+    const ab=await blob.arrayBuffer();
+    const dv=new DataView(ab);
+    if(dv.getUint32(0)!==0x52494646){res({ok:true,flags:[]});return}
+    const sr=dv.getUint32(24,true),bps=dv.getUint16(34,true),nc=dv.getUint16(22,true);
+    const dataStart=44,dataLen=ab.byteLength-dataStart;
+    const samples=dataLen/(bps/8);
+    const duration=samples/(sr*nc);
+    // RMS 계산
+    let sumSq=0,silentSamples=0,peak=0;
+    const view=new Int16Array(ab,dataStart);
+    for(let i=0;i<view.length;i++){
+      const v=view[i]/32768;
+      sumSq+=v*v;
+      if(Math.abs(v)<0.01)silentSamples++;
+      if(Math.abs(v)>peak)peak=Math.abs(v);
+    }
+    const rms=Math.sqrt(sumSq/view.length);
+    const silentRatio=silentSamples/view.length;
+    // 마지막 1초 에너지
+    const lastSecSamples=Math.min(sr,view.length);
+    let lastSumSq=0;
+    for(let i=view.length-lastSecSamples;i<view.length;i++){
+      const v=view[i]/32768;lastSumSq+=v*v;
+    }
+    const lastRms=Math.sqrt(lastSumSq/lastSecSamples);
+    // 판정
+    const flags=[];
+    if(rms<0.01)flags.push('⚠️ 전체 음량 매우 낮음');
+    if(silentRatio>0.5)flags.push('⚠️ 무음 구간 50%+ 초과');
+    if(peak>0.99)flags.push('⚠️ 클리핑 감지');
+    if(lastRms<rms*0.3&&duration>3)flags.push('⚠️ 끝부분 급격히 조용해짐');
+    if(lastRms>rms*2.5&&duration>3)flags.push('⚠️ 끝부분 급격히 커짐');
+    // 속도 추정 (한글 약 4자/초 기준, 큰 편차 감지)
+    res({ok:flags.length===0,flags,duration:duration.toFixed(1),rms:rms.toFixed(4),silentRatio:(silentRatio*100).toFixed(1)});
+  });
+}
+
+// ===== API 호출 =====
+async function callTTS(fullText,voiceName){
+  if(ST.apiMode==='supa'){
+    const url=`${$('supaUrl').value.trim()}/functions/v1/${$('supaFn').value.trim()}`;
+    const r=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${$('supaKey').value.trim()}`},
+      body:JSON.stringify({text:fullText,voice:voiceName,model:$('mdl').value})
+    });
+    if(!r.ok)throw new Error(`Supabase ${r.status}: ${(await r.text()).substring(0,150)}`);
+    return await r.json();
+  }else{
+    const k=$('apiKey').value.trim();
+    const body={
+      contents:[{parts:[{text:fullText}]}],
+      generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}}}
+    };
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${$('mdl').value}:generateContent?key=${k}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+    });
+    if(!r.ok)throw new Error(`API ${r.status}: ${(await r.text()).substring(0,150)}`);
+    return await r.json();
+  }
+}
+
+async function genSeg(text,i){
+  const vn=$('vn').value,bible=buildBible();
+  const el=$('sg'+i),ss=$('ss'+i);
+  ss.textContent='생성 중...';ss.className='ss g';el.className='sg gn';
+
+  // 바이블 + 청크 텍스트 조합 (바이블은 항상 100% 동일)
+  const fullText=bible+'\n\n---\n\n'+text;
+  lg(`  바이블(${bible.length}자) + 청크(${text.length}자) = ${fullText.length}자 전송`);
+
+  const d=await callTTS(fullText,vn);
+  if(!d.candidates?.[0]?.content?.parts)throw new Error('응답에 오디오 없음');
+  const ap=d.candidates[0].content.parts.find(p=>p.inlineData);
+  if(!ap)throw new Error('오디오 파트 없음');
+
+  let blob=b64ToWavBlob(ap.inlineData.data);
+  lg(`  원본: ${(blob.size/1024).toFixed(0)}KB`);
+
+  // 품질 검수
+  const qa=await analyzeWav(blob);
+  lg(`  QA: ${qa.duration}초 | RMS:${qa.rms} | 무음:${qa.silentRatio}%`);
+
+  ss.textContent='완료 ✓';ss.className='ss o';el.className='sg dn';
+  const au=URL.createObjectURL(blob);
+  let infoHtml=`<span>${qa.duration}초 | ${(blob.size/1024).toFixed(0)}KB</span>`;
+
+  if(!qa.ok){
+    el.className='sg flagged';ss.textContent='⚠️ 검토';ss.className='ss f';
+    infoHtml+=qa.flags.map(f=>`<span class="flag">${f}</span>`).join('');
+    infoHtml+=`<button class="regen-btn" onclick="regenSeg(${i})">🔄 재생성</button>`;
+    lg(`  ⚠️ 이상 감지: ${qa.flags.join(', ')}`,'w');
+  }
+
+  $('sa'+i).innerHTML=`<audio controls src="${au}"></audio><div class="sa-info">${infoHtml}</div>`;
+  return{blob,url:au,qa};
+}
+
+async function regenSeg(i){
+  lg(`청크 ${i+1} 재생성...`,'w');
+  try{
+    const res=await genSeg(ST.segs[i],i);
+    ST.auds[i]=res;
+    lg(`청크 ${i+1} 재생성 완료 ✓`,'k');
+  }catch(e){lg(`재생성 실패: ${e.message}`,'e')}
+}
+
+async function go(){
+  const hasKey=ST.apiMode==='direct'?$('apiKey').value.trim():$('supaUrl').value.trim();
+  if(!hasKey){alert(ST.apiMode==='direct'?'API 키를 입력하세요':'Supabase URL을 입력하세요');return}
+  const t=$('tx').value.trim();if(!t){alert('텍스트를 입력하세요');return}
+  ST.segs=splitManual(t);if(!ST.segs.length){alert('세그먼트 없음');return}
+  ST.auds=new Array(ST.segs.length).fill(null);ST.running=true;ST.stop=false;
+  rnSg();$('segC').classList.remove('hd');$('resC').classList.add('hd');
+  $('btnGo').classList.add('hd');$('btnSt').classList.remove('hd');
+  lg(`===== 생성 시작 =====`,'i');
+  lg(`모델: ${$('mdl').value} | 음성: ${$('vn').value} | ${ST.segs.length}청크 | ${ST.apiMode}`);
+  const dl=+$('sd').value;let done=0;
+  for(let i=0;i<ST.segs.length;i++){
+    if(ST.stop){lg('중지됨','w');break}
+    lg(`청크 ${i+1}/${ST.segs.length} (${ST.segs[i].length}자)...`);
+    try{
+      ST.auds[i]=await genSeg(ST.segs[i],i);done++;
+      const pct=Math.round(done/ST.segs.length*100);
+      $('pf').style.width=pct+'%';$('pt').textContent=`${done}/${ST.segs.length}`;$('pp').textContent=pct+'%';
+      lg(`청크 ${i+1} 완료 ✓`,'k');
+      if(i<ST.segs.length-1&&!ST.stop)await new Promise(r=>setTimeout(r,dl));
+    }catch(e){
+      lg(`청크 ${i+1} 오류: ${e.message}`,'e');
+      $('ss'+i).textContent='오류';$('ss'+i).className='ss e';$('sg'+i).className='sg er';
+      await new Promise(r=>setTimeout(r,2000));
+      try{
+        lg(`재시도...`,'w');ST.auds[i]=await genSeg(ST.segs[i],i);done++;
+        const pct=Math.round(done/ST.segs.length*100);
+        $('pf').style.width=pct+'%';$('pt').textContent=`${done}/${ST.segs.length}`;$('pp').textContent=pct+'%';
+        lg(`재시도 성공 ✓`,'k');
+        if(i<ST.segs.length-1&&!ST.stop)await new Promise(r=>setTimeout(r,dl));
+      }catch(e2){lg(`재시도 실패: ${e2.message}`,'e')}
+    }
+  }
+  ST.running=false;$('btnGo').classList.remove('hd');$('btnSt').classList.add('hd');
+  const ok=ST.auds.filter(Boolean).length;
+  if(ok>0){$('resC').classList.remove('hd');showRes();lg(`===== 완료: ${ok}/${ST.segs.length} 성공 =====`,'k')}
+  else lg('생성 실패','e');
+}
+
+function doStop(){ST.stop=true;lg('중지 요청...','w')}
+
+function showRes(){
+  const fs=$('fS');fs.innerHTML='';
+  ST.auds.forEach((a,i)=>{
+    if(!a)return;
+    const preview=ST.segs[i]?.replace(/\[.*?\]/g,'').trim().substring(0,30)||'';
+    const d=document.createElement('div');d.className='fa';
+    d.innerHTML=`<div style="font-size:.85em;margin-bottom:4px;font-weight:600">청크 ${i+1} <span style="color:var(--txd);font-weight:400;font-size:.85em">${preview}...</span></div><audio controls src="${a.url}" style="width:100%"></audio>`;
+    fs.appendChild(d);
+  });
+}
+
+function dlAll(){
+  ST.auds.forEach((a,i)=>{
+    if(!a)return;
+    const lk=document.createElement('a');lk.href=a.url;lk.download=`chunk_${String(i+1).padStart(2,'0')}.wav`;
+    document.body.appendChild(lk);lk.click();document.body.removeChild(lk);
+  });lg('개별 다운로드','k');
+}
+
+async function merge(){
+  lg('병합 시작 (크로스페이드+정규화)...','i');
+  const va=ST.auds.filter(Boolean);
+  if(!va.length){lg('병합할 오디오 없음','e');return}
+  const chunks=[];let sr=24000,nc=1,bps=16;
+  for(let i=0;i<va.length;i++){
+    const ab=await va[i].blob.arrayBuffer();
+    const dv=new DataView(ab);
+    if(dv.getUint32(0)===0x52494646){
+      sr=dv.getUint32(24,true);nc=dv.getUint16(22,true);bps=dv.getUint16(34,true);
+      chunks.push(new Int16Array(ab.slice(44)));
+    }
+  }
+  if(!chunks.length){lg('PCM 추출 실패','e');return}
+
+  // 라우드니스 정규화: 각 청크 RMS를 타겟에 맞춤
+  const targetRms=0.08;
+  const normalized=chunks.map(ch=>{
+    let sum=0;for(let i=0;i<ch.length;i++){const v=ch[i]/32768;sum+=v*v}
+    const rms=Math.sqrt(sum/ch.length);
+    const gain=rms>0.001?targetRms/rms:1;
+    const out=new Int16Array(ch.length);
+    for(let i=0;i<ch.length;i++){out[i]=Math.max(-32768,Math.min(32767,Math.round(ch[i]*gain)))}
+    return out;
+  });
+  lg(`  정규화 완료 (타겟 RMS: ${targetRms})`);
+
+  // 크로스페이드 병합 (80ms)
+  const fadeSamples=Math.floor(sr*0.08);
+  const gapSamples=Math.floor(sr*0.25); // 250ms gap
+  let totalLen=0;
+  normalized.forEach((c,i)=>{
+    totalLen+=c.length;
+    if(i<normalized.length-1)totalLen+=gapSamples;
+  });
+  const merged=new Int16Array(totalLen);
+  let off=0;
+  normalized.forEach((c,idx)=>{
+    for(let i=0;i<c.length;i++){
+      let s=c[i];
+      // 페이드인 (첫 청크 제외)
+      if(idx>0&&i<fadeSamples)s=Math.round(s*(i/fadeSamples));
+      // 페이드아웃 (마지막 청크 제외)
+      if(idx<normalized.length-1&&i>=c.length-fadeSamples)s=Math.round(s*((c.length-i)/fadeSamples));
+      merged[off+i]=s;
+    }
+    off+=c.length;
+    if(idx<normalized.length-1)off+=gapSamples; // gap은 0(무음)
+  });
+
+  const wavBuf=pcmToWav(merged.buffer,sr,nc,bps);
+  const blob=new Blob([wavBuf],{type:'audio/wav'});
+  const lk=document.createElement('a');lk.href=URL.createObjectURL(blob);lk.download='merged_tts.wav';
+  document.body.appendChild(lk);lk.click();document.body.removeChild(lk);
+  lg(`병합 완료: ${chunks.length}청크 → ${(blob.size/1024/1024).toFixed(1)}MB (크로스페이드 80ms, 정규화 적용)`,'k');
+}
+
+$('tx').addEventListener('input',uSt);
+</script>
+</body>
+</html>
