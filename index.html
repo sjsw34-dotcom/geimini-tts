@@ -461,7 +461,7 @@ function dlAll(){
 }
 
 async function merge(){
-  lg('병합 시작 (크로스페이드+정규화)...','i');
+  lg('병합 시작 (고급 정규화+노이즈게이트+크로스페이드)...','i');
   const va=ST.auds.filter(Boolean);
   if(!va.length){lg('병합할 오디오 없음','e');return}
   const chunks=[];let sr=24000,nc=1,bps=16;
@@ -475,46 +475,87 @@ async function merge(){
   }
   if(!chunks.length){lg('PCM 추출 실패','e');return}
 
-  // 라우드니스 정규화: 각 청크 RMS를 타겟에 맞춤
-  const targetRms=0.08;
-  const normalized=chunks.map(ch=>{
-    let sum=0;for(let i=0;i<ch.length;i++){const v=ch[i]/32768;sum+=v*v}
-    const rms=Math.sqrt(sum/ch.length);
-    const gain=rms>0.001?targetRms/rms:1;
+  // 1단계: 각 청크 노이즈 게이트 (작은 잡음 제거)
+  const noiseThreshold=0.008; // 이 이하는 무음 처리
+  const gated=chunks.map(ch=>{
+    const out=new Int16Array(ch.length);
+    for(let i=0;i<ch.length;i++){
+      const v=ch[i]/32768;
+      out[i]=Math.abs(v)<noiseThreshold?0:ch[i];
+    }
+    return out;
+  });
+  lg('  노이즈 게이트 적용 완료');
+
+  // 2단계: 피크 정규화 (모든 청크의 피크를 동일하게)
+  const targetPeak=0.85;
+  const peakNorm=gated.map(ch=>{
+    let peak=0;
+    for(let i=0;i<ch.length;i++){if(Math.abs(ch[i])>peak)peak=Math.abs(ch[i])}
+    const gain=peak>0?((targetPeak*32768)/peak):1;
     const out=new Int16Array(ch.length);
     for(let i=0;i<ch.length;i++){out[i]=Math.max(-32768,Math.min(32767,Math.round(ch[i]*gain)))}
     return out;
   });
-  lg(`  정규화 완료 (타겟 RMS: ${targetRms})`);
+  lg('  피크 정규화 완료 (타겟: '+targetPeak+')');
 
-  // 크로스페이드 병합 (80ms)
-  const fadeSamples=Math.floor(sr*0.08);
-  const gapSamples=Math.floor(sr*0.25); // 250ms gap
-  let totalLen=0;
-  normalized.forEach((c,i)=>{
-    totalLen+=c.length;
-    if(i<normalized.length-1)totalLen+=gapSamples;
+  // 3단계: RMS 정규화 (체감 음량 통일)
+  const targetRms=0.1;
+  const normalized=peakNorm.map((ch,idx)=>{
+    let sum=0;for(let i=0;i<ch.length;i++){const v=ch[i]/32768;sum+=v*v}
+    const rms=Math.sqrt(sum/ch.length);
+    const gain=rms>0.001?targetRms/rms:1;
+    const clampedGain=Math.min(gain,3); // 과도한 증폭 방지
+    const out=new Int16Array(ch.length);
+    for(let i=0;i<ch.length;i++){out[i]=Math.max(-32768,Math.min(32767,Math.round(ch[i]*clampedGain)))}
+    lg(`  청크${idx+1}: RMS ${rms.toFixed(4)} → gain ${clampedGain.toFixed(2)}x`);
+    return out;
   });
+  lg('  RMS 정규화 완료');
+
+  // 4단계: 앞뒤 무음 트림 (각 청크의 시작/끝 무음 제거)
+  const trimmed=normalized.map(ch=>{
+    const threshold=200; // ~0.006
+    let start=0,end=ch.length-1;
+    while(start<ch.length&&Math.abs(ch[start])<threshold)start++;
+    while(end>start&&Math.abs(ch[end])<threshold)end--;
+    start=Math.max(0,start-Math.floor(sr*0.02)); // 20ms 여유
+    end=Math.min(ch.length-1,end+Math.floor(sr*0.02));
+    return ch.slice(start,end+1);
+  });
+  lg('  무음 트림 완료');
+
+  // 5단계: 크로스페이드 병합
+  const fadeSamples=Math.floor(sr*0.1); // 100ms
+  const gapSamples=Math.floor(sr*0.3);  // 300ms
+  let totalLen=0;
+  trimmed.forEach((c,i)=>{totalLen+=c.length;if(i<trimmed.length-1)totalLen+=gapSamples});
   const merged=new Int16Array(totalLen);
   let off=0;
-  normalized.forEach((c,idx)=>{
+  trimmed.forEach((c,idx)=>{
     for(let i=0;i<c.length;i++){
       let s=c[i];
-      // 페이드인 (첫 청크 제외)
       if(idx>0&&i<fadeSamples)s=Math.round(s*(i/fadeSamples));
-      // 페이드아웃 (마지막 청크 제외)
-      if(idx<normalized.length-1&&i>=c.length-fadeSamples)s=Math.round(s*((c.length-i)/fadeSamples));
+      if(idx<trimmed.length-1&&i>=c.length-fadeSamples)s=Math.round(s*((c.length-i)/fadeSamples));
       merged[off+i]=s;
     }
     off+=c.length;
-    if(idx<normalized.length-1)off+=gapSamples; // gap은 0(무음)
+    if(idx<trimmed.length-1)off+=gapSamples;
   });
+
+  // 6단계: 최종 리미터 (클리핑 방지)
+  for(let i=0;i<merged.length;i++){
+    if(merged[i]>30000)merged[i]=30000;
+    if(merged[i]<-30000)merged[i]=-30000;
+  }
+  lg('  리미터 적용 완료');
 
   const wavBuf=pcmToWav(merged.buffer,sr,nc,bps);
   const blob=new Blob([wavBuf],{type:'audio/wav'});
   const lk=document.createElement('a');lk.href=URL.createObjectURL(blob);lk.download='merged_tts.wav';
   document.body.appendChild(lk);lk.click();document.body.removeChild(lk);
-  lg(`병합 완료: ${chunks.length}청크 → ${(blob.size/1024/1024).toFixed(1)}MB (크로스페이드 80ms, 정규화 적용)`,'k');
+  lg(`병합 완료: ${chunks.length}청크 → ${(blob.size/1024/1024).toFixed(1)}MB`,'k');
+  lg(`  처리: 노이즈게이트→피크정규화→RMS정규화→무음트림→크로스페이드→리미터`,'k');
 }
 
 $('tx').addEventListener('input',uSt);
